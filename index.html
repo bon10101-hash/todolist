@@ -118,6 +118,50 @@
     white-space: nowrap;
   }
 
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    border: none;
+    background: none;
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 14px;
+    color: var(--ink-soft);
+    padding: 8px 0 10px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.15s ease;
+  }
+  .tab-btn.active { color: var(--ink); font-weight: 700; }
+  .tab-btn.active::after {
+    content: '';
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: 0;
+    height: 2px;
+    background: var(--stamp);
+  }
+
+  .memo-view textarea {
+    width: 100%;
+    min-height: 260px;
+    border: none;
+    background: transparent;
+    resize: vertical;
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--ink);
+    padding: 4px 2px;
+  }
+  .memo-view textarea:focus { outline: none; }
+  .memo-view textarea::placeholder { color: #a8a190; }
+
   .add-row {
     display: flex;
     gap: 8px;
@@ -154,6 +198,8 @@
   }
   .add-row button:focus-visible,
   input:focus-visible,
+  textarea:focus-visible,
+  .tab-btn:focus-visible,
   .task input[type="checkbox"]:focus-visible {
     outline: 2px solid var(--stamp);
     outline-offset: 2px;
@@ -393,15 +439,26 @@
     </div>
   </header>
 
-  <form class="add-row" id="addForm">
-    <input type="text" id="taskInput" placeholder="다음 할 일을 적어보세요" maxlength="80" autocomplete="off">
-    <button type="submit">추가</button>
-  </form>
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab-btn active" id="todoTabBtn" role="tab" aria-selected="true" aria-controls="todoView">할 일</button>
+    <button type="button" class="tab-btn" id="memoTabBtn" role="tab" aria-selected="false" aria-controls="memoView">메모</button>
+  </div>
 
-  <ul id="list"></ul>
-  <div class="empty" id="emptyMsg">아직 할 일이 없어요. 하나 적어볼까요?</div>
+  <div class="view" id="todoView" role="tabpanel">
+    <form class="add-row" id="addForm">
+      <input type="text" id="taskInput" placeholder="다음 할 일을 적어보세요" maxlength="80" autocomplete="off">
+      <button type="submit">추가</button>
+    </form>
 
-  <div class="note">체크하면 도장이 쾅! 찍혀요 · 카메라 아이콘 눌러서 사진도 붙여보세요</div>
+    <ul id="list"></ul>
+    <div class="empty" id="emptyMsg">아직 할 일이 없어요. 하나 적어볼까요?</div>
+
+    <div class="note">체크하면 도장이 쾅! 찍혀요 · 카메라 아이콘 눌러서 사진도 붙여보세요</div>
+  </div>
+
+  <div class="view memo-view" id="memoView" role="tabpanel" hidden>
+    <textarea id="memoText" placeholder="자유롭게 메모를 남겨보세요"></textarea>
+  </div>
 </div>
 
 <div class="lightbox" id="lightbox" hidden>
@@ -615,6 +672,40 @@
     save();
     render();
   });
+
+  const MEMO_KEY = 'todo-notepad-memo';
+  const todoTabBtn = document.getElementById('todoTabBtn');
+  const memoTabBtn = document.getElementById('memoTabBtn');
+  const todoView = document.getElementById('todoView');
+  const memoView = document.getElementById('memoView');
+  const memoText = document.getElementById('memoText');
+
+  try {
+    memoText.value = localStorage.getItem(MEMO_KEY) || '';
+  } catch (e) {
+    memoText.value = '';
+  }
+
+  memoText.addEventListener('input', () => {
+    try {
+      localStorage.setItem(MEMO_KEY, memoText.value);
+    } catch (e) {
+      alert('저장 공간이 가득 찼어요. 메모를 줄여서 다시 시도해주세요.');
+    }
+  });
+
+  function showTab(tab) {
+    const isTodo = tab === 'todo';
+    todoTabBtn.classList.toggle('active', isTodo);
+    todoTabBtn.setAttribute('aria-selected', String(isTodo));
+    memoTabBtn.classList.toggle('active', !isTodo);
+    memoTabBtn.setAttribute('aria-selected', String(!isTodo));
+    todoView.hidden = !isTodo;
+    memoView.hidden = isTodo;
+  }
+
+  todoTabBtn.addEventListener('click', () => showTab('todo'));
+  memoTabBtn.addEventListener('click', () => showTab('memo'));
 
   setDateLabel();
   render();
